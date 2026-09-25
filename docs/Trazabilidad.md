@@ -1,0 +1,11 @@
+| Requirement | SPEC / AC | Task | Files | Test | Status | Notes |
+|-------------|---|---|---|---|---|---|
+| FR-01       | AC-01 | T-03, T-05 | search_services.py | test_search_service.py::test_ac01_substring_and_case_insensitive_matching, test_search_service.py::test_edge_case_case_insensitivity_symmetry | Implementado y Verificado | Búsqueda por subcadena insensible a mayúsculas/minúsculas y simetría comprobada |
+| FR-02       | AC-02 | T-03, T-05 | search_services.py | test_search_service.py::test_ac02_accent_normalization | Implementado y Verificado | Normalización NFD de acentos y diéresis |
+| FR-03       | Error Handling | T-03, T-04, T-05 | search_services.py, exceptions.py, handler.py | test_search_service.py::test_fr03_no_results_returns_exact_message, test_validation_and_errors.py::test_customer_not_found_response_code_404 | Implementado y Verificado | Retorna 404 con texto exacto cuando no hay resultados y lanza CustomerNotFoundError |
+| FR-04       | AC-04 | T-03, T-05 | search_services.py | test_search_service.py::test_ac04_email_partial_match | Implementado y Verificado | Coincidencia parcial en email (mínimo 3 caracteres) |
+| FR-05       | AC-05 | T-02, T-03, T-05 | customer.py, search_services.py | test_search_service.py::test_ac05_only_authorized_basic_fields_returned | Implementado y Verificado | DTO omite campos sensibles y solo expone datos básicos |
+| FR-06       | AC-04 | T-03, T-05 | search_services.py | test_search_service.py::test_ac04_email_partial_match | Implementado y Verificado | Búsqueda por email soportada en payload y query |
+| NFR-01      | NFR-01 | NFR Backend | handler.py, search_services.py | test_nfr.py::test_nfr01_p95_latency_under_50_concurrent_requests | Implementado y Verificado | Latencia p95 medida bajo 50 hilos concurrentes, muy inferior a 300 ms |
+| NFR-02      | NFR-02 | NFR Backend | handler.py, exceptions.py | test_nfr.py::test_nfr02_rate_limiting_allows_up_to_30_requests_per_minute, test_nfr.py::test_nfr02_rate_limiting_is_isolated_per_user | Implementado y Verificado | Rate limiting de 30 req/min por usuario con rechazo HTTP 429 Too Many Requests |
+| NFR-03      | NFR-03 | - | - | - | Excluido por Alcance | Fuera de alcance: la aplicación se mantiene 100% en consola/CLI sin interfaz gráfica visual |
