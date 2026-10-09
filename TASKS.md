@@ -29,8 +29,3 @@
 - Files: README.md, archivos pyton
 - Acceptance: Los archivos se les agrega la documentacion correspondiente.
 - Verification: Manual
-## T-07 Configurable sort order
-- Goal: Agregar soporte para parámetro opcional de ordenamiento `order` ('asc' o 'desc', manteniendo 'asc' por defecto) en la búsqueda de clientes.
-- Files: search_services.py, handler.py, cli.py, test_search_service.py
-- Acceptance: Permite ordenar el desempate alfabético de forma ascendente ('asc') o descendente ('desc'). Rechaza valores inválidos con HTTP 400.
-- Verification: pytest
