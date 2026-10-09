@@ -6,6 +6,7 @@ from src.exceptions import (
     EmptyQueryError,
     ValidationError,
 )
+from src.handler import CustomerSearchHandler
 from src.search_services import CustomerSearchService, normalize_text
 
 
@@ -189,3 +190,75 @@ def test_service_traps_all_exceptions_to_http_codes(service):
     res_500 = broken_service.search("carlos")
     assert res_500["status"] == 500
     assert "Error interno del servidor" in res_500["message"]
+
+
+def test_configurable_sort_order_ascending():
+    """T-07: order='asc' (por defecto) ordena los empates de coincidencia alfabéticamente A-Z."""
+    customers = [
+        Customer(id="2", nombre="Carlos Valderrama", email="carlos.v@example.com"),
+        Customer(id="1", nombre="Carlos Santana", email="carlos.s@example.com"),
+        Customer(id="3", nombre="Carlos Alberto", email="carlos.a@example.com"),
+    ]
+    service = CustomerSearchService(customers=customers)
+    res = service.search("Carlos", order="asc")
+    assert res["status"] == 200
+    assert res["order"] == "asc"
+    names = [c["name"] for c in res["data"]]
+    assert names == ["Carlos Alberto", "Carlos Santana", "Carlos Valderrama"]
+
+
+def test_configurable_sort_order_descending():
+    """T-07: order='desc' invierte el desempate alfabético a Z-A preservando los niveles de relevancia."""
+    customers = [
+        Customer(id="2", nombre="Carlos Valderrama", email="carlos.v@example.com"),
+        Customer(id="1", nombre="Carlos Santana", email="carlos.s@example.com"),
+        Customer(id="3", nombre="Carlos Alberto", email="carlos.a@example.com"),
+    ]
+    service = CustomerSearchService(customers=customers)
+    res = service.search("Carlos", order="desc")
+    assert res["status"] == 200
+    assert res["order"] == "desc"
+    names = [c["name"] for c in res["data"]]
+    assert names == ["Carlos Valderrama", "Carlos Santana", "Carlos Alberto"]
+
+
+def test_configurable_sort_order_via_payload():
+    """T-07: El parámetro order puede ser suministrado dentro del request_payload."""
+    customers = [
+        Customer(id="2", nombre="Carlos Valderrama", email="carlos.v@example.com"),
+        Customer(id="1", nombre="Carlos Santana", email="carlos.s@example.com"),
+        Customer(id="3", nombre="Carlos Alberto", email="carlos.a@example.com"),
+    ]
+    service = CustomerSearchService(customers=customers)
+    res = service.search({"query": "Carlos", "order": "desc"})
+    assert res["status"] == 200
+    assert res["order"] == "desc"
+    names = [c["name"] for c in res["data"]]
+    assert names == ["Carlos Valderrama", "Carlos Santana", "Carlos Alberto"]
+
+
+def test_configurable_sort_order_invalid_value_raises_validation_error():
+    """T-07: Valores de ordenamiento no permitidos lanzan ValidationError (HTTP 400)."""
+    service = CustomerSearchService()
+    with pytest.raises(ValidationError) as exc_info:
+        service.search_customers("Carlos", order="invalido")
+    assert exc_info.value.status_code == 400
+    assert "El parámetro de ordenamiento debe ser 'asc' o 'desc'" in exc_info.value.message
+
+    # Al usar search() se atrapa y retorna respuesta HTTP 400
+    res = service.search({"query": "Carlos", "order": "invalido"})
+    assert res["status"] == 400
+    assert "El parámetro de ordenamiento debe ser 'asc' o 'desc'" in res["message"]
+
+
+def test_configurable_sort_order_in_handler():
+    """T-07: CustomerSearchHandler procesa y propaga correctamente el parámetro order."""
+    handler = CustomerSearchHandler()
+    res_asc = handler.handle({"name": "Carlos"}, order="asc")
+    assert res_asc["status"] == 200
+    assert res_asc["order"] == "asc"
+
+    res_desc = handler.handle({"name": "Carlos"}, order="desc")
+    assert res_desc["status"] == 200
+    assert res_desc["order"] == "desc"
+

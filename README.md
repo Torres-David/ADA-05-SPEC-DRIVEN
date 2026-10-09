@@ -46,9 +46,9 @@ Sistema de búsqueda de clientes por nombre o correo electrónico desarrollado b
   ```bash
   python cli.py --email "soporte.ti@empresa.com"
   ```
-- **Búsqueda con paginación**:
+- **Búsqueda con paginación y ordenamiento**:
   ```bash
-  python cli.py "example.com" --page 1 --limit 10
+  python cli.py "example.com" --page 1 --limit 10 --order desc
   ```
 
 ### Modo Interactivo
@@ -63,7 +63,7 @@ Permite ingresar múltiples consultas de manera continua hasta escribir `salir` 
 
 ## 4. Cómo Correr las Pruebas
 
-Para ejecutar la suite de pruebas completa (42 pruebas automáticas):
+Para ejecutar la suite de pruebas completa (47 pruebas automáticas):
 
 ```bash
 pytest -v
@@ -124,6 +124,7 @@ print(response)
   "total": 1,
   "page": 1,
   "limit": 20,
+  "order": "asc",
   "data": [
     {
       "id": "1",
@@ -140,14 +141,14 @@ print(response)
 
 - **Normalización de Texto (FR-02)**: Insensible a mayúsculas/minúsculas y normalización automática de acentos y diéresis (e.g., `"jose gomez"` localiza `"José Gómez"`).
 - **Coincidencias en Nombre y Correo (FR-01, FR-04, FR-06)**: Búsqueda por subcadena en nombre y coincidencia parcial en email (requiere al menos 3 caracteres consecutivos).
-- **Orden de Relevancia Estricto (AC-06)**:
+- **Orden de Relevancia Estricto y Configurable (AC-06, T-07)**:
   1. Coincidencia exacta en nombre
   2. Coincidencia exacta en correo
   3. Coincidencia por prefijo en nombre
   4. Coincidencia por prefijo en correo
   5. Coincidencia por subcadena en nombre
   6. Coincidencia por subcadena en correo
-  *Desempate*: Orden alfabético A-Z por nombre.
+  *Desempate*: Orden alfabético configurable por nombre mediante el parámetro `order` (`"asc"` para A-Z por defecto, o `"desc"` para Z-A). Valores no válidos son rechazados con código HTTP 400.
 - **Protección de Datos Sensibles (FR-05, AC-05)**: El DTO de salida únicamente entrega campos básicos autorizados (`id`, `name`, `email`). Atributos sensibles nunca son expuestos.
 - **Paginación**: Segmentación con límite predeterminado de 20 elementos por página.
 - **Rendimiento Bajo Carga (NFR-01)**: Latencia p95 verificada $\le$ 300 ms bajo 50 peticiones concurrentes.
