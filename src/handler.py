@@ -2,12 +2,8 @@ import threading
 import time
 from typing import Any, Dict, List, Optional
 
-try:
-    from src.exceptions import RateLimitExceededError
-    from src.search_services import CustomerSearchService
-except ModuleNotFoundError:
-    from exceptions import RateLimitExceededError
-    from search_services import CustomerSearchService
+from exceptions import RateLimitExceededError
+from search_services import CustomerSearchService
 
 
 class RateLimiter:
@@ -70,7 +66,6 @@ class CustomerSearchHandler:
         page: int = 1,
         limit: int = 20,
         user_id: Optional[str] = None,
-        order: str = "asc",
     ) -> Dict[str, Any]:
         """Procesa la petición y retorna la respuesta con su código de estado HTTP correspondiente:
 
@@ -101,6 +96,4 @@ class CustomerSearchHandler:
                     "data": [],
                 }
 
-        return self.service.search(
-            request_payload, page=page, limit=limit, order=order
-        )
+        return self.service.search(request_payload, page=page, limit=limit)

@@ -1,26 +1,15 @@
 import unicodedata
 from typing import Any, Dict, List, Optional, Tuple
 
-try:
-    from src.customer import Customer
-    from src.customer_repository import CustomerRepository
-    from src.exceptions import (
-        CustomerNotFoundError,
-        CustomerSearchException,
-        DatabaseError,
-        EmptyQueryError,
-        ValidationError,
-    )
-except ModuleNotFoundError:
-    from customer import Customer
-    from customer_repository import CustomerRepository
-    from exceptions import (
-        CustomerNotFoundError,
-        CustomerSearchException,
-        DatabaseError,
-        EmptyQueryError,
-        ValidationError,
-    )
+from src.customer import Customer
+from src.customer_repository import CustomerRepository
+from src.exceptions import (
+    CustomerNotFoundError,
+    CustomerSearchException,
+    DatabaseError,
+    EmptyQueryError,
+    ValidationError,
+)
 
 
 def normalize_text(text: str) -> str:
@@ -108,18 +97,14 @@ class CustomerSearchService:
         request_payload: Any,
         page: int = 1,
         limit: int = 20,
-        order: str = "asc",
     ) -> Dict[str, Any]:
         """Ejecuta la búsqueda y lanza excepciones de dominio si ocurren validaciones o ausencias."""
-        # 1. Extracción del término y orden
+        # 1. Extracción del término
         raw_term = ""
-        raw_order = order
         if isinstance(request_payload, dict):
             name_term = request_payload.get("name", "")
             email_term = request_payload.get("email", "")
             query_term = request_payload.get("query", "")
-            if "order" in request_payload and request_payload["order"] is not None:
-                raw_order = request_payload["order"]
 
             if query_term:
                 raw_term = str(query_term)
@@ -133,11 +118,6 @@ class CustomerSearchService:
             raw_term = request_payload
         else:
             raise ValidationError("Formato de solicitud inválido")
-
-        # Validación de parámetro de ordenamiento ('asc' o 'desc')
-        clean_order = str(raw_order).lower().strip()
-        if clean_order not in ("asc", "desc"):
-            raise ValidationError("El parámetro de ordenamiento debe ser 'asc' o 'desc'")
 
         # Validación de solicitud vacía o solo espacios (Edge case SPEC.md / T-04)
         trimmed_term = raw_term.strip()
@@ -159,12 +139,8 @@ class CustomerSearchService:
                     (priority, normalize_text(customer.name), customer)
                 )
 
-        # Ordenar respetando la prioridad de coincidencia y aplicando el criterio alfabético
-        if clean_order == "desc":
-            matched_customers.sort(key=lambda item: item[1], reverse=True)
-            matched_customers.sort(key=lambda item: item[0], reverse=False)
-        else:
-            matched_customers.sort(key=lambda item: (item[0], item[1]))
+        # Ordenar por prioridad (menor número = mayor prioridad), luego alfabéticamente
+        matched_customers.sort(key=lambda item: (item[0], item[1]))
 
         # 3. Verificación de coincidencias (FR-03: lanza CustomerNotFoundError)
         if not matched_customers:
@@ -193,7 +169,6 @@ class CustomerSearchService:
             "total": total_records,
             "page": safe_page,
             "limit": safe_limit,
-            "order": clean_order,
             "data": dto_results,
         }
 
@@ -202,29 +177,20 @@ class CustomerSearchService:
         request_payload: Any,
         page: int = 1,
         limit: int = 20,
-        order: str = "asc",
     ) -> Dict[str, Any]:
         """Punto de entrada compatible que atrapa excepciones de dominio y empaqueta
 
         la respuesta con el código HTTP correspondiente.
         """
         try:
-            return self.search_customers(
-                request_payload, page=page, limit=limit, order=order
-            )
+            return self.search_customers(request_payload, page=page, limit=limit)
         except CustomerNotFoundError as not_found:
-            resolved_order = (
-                str(order).lower().strip()
-                if str(order).lower().strip() in ("asc", "desc")
-                else "asc"
-            )
             return {
                 "status": not_found.status_code,
                 "message": not_found.message,
                 "total": 0,
                 "page": page,
                 "limit": limit,
-                "order": resolved_order,
                 "data": [],
             }
         except DatabaseError as db_error:
