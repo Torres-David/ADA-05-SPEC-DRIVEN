@@ -1,0 +1,32 @@
+[
+{
+"id": "trigger_positive_01",
+"input": "Review PR #04 and tell me if it is ready for human review.",
+"expected_trigger": true
+},
+{
+"id": "trigger_positive_02",
+"input": "Check this pull request against the spec and tests.",
+"expected_trigger": true
+},
+{
+"id": "trigger_positive_03",
+"input": "Perform a PR readiness review for the current branch.",
+"expected_trigger": true
+},
+{
+"id": "trigger_negative_01",
+"input": "Implement issue #04.",
+"expected_trigger": false
+},
+{
+"id": "trigger_negative_02",
+"input": "Merge PR #04.",
+"expected_trigger": false
+},
+{
+"id": "trigger_negative_03",
+"input": "Explain what a pull request is.",
+"expected_trigger": false
+}
+]

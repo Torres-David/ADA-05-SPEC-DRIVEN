@@ -1,0 +1,210 @@
+[
+  {
+    "name": "Carlos Santana",
+    "email": "carlos.santana@example.com"
+  },
+  {
+    "name": "Ana Martínez",
+    "email": "ana.martinez@example.com"
+  },
+  {
+    "name": "José Gómez",
+    "email": "jose.gomez@example.com"
+  },
+  {
+    "name": "Soporte TI",
+    "email": "soporte.ti@empresa.com"
+  },
+  {
+    "name": "Ana",
+    "email": "ana.ac06@example.com"
+  },
+  {
+    "name": "Anabel",
+    "email": "anabel.ac06@example.com"
+  },
+  {
+    "name": "Mariana",
+    "email": "mariana.ac06@example.com"
+  },
+  {
+    "name": "Pedro Sánchez",
+    "email": "pedro.sanchez@example.com"
+  },
+  {
+    "name": "Luis Torres",
+    "email": "luis.torres@example.com"
+  },
+  {
+    "name": "Miguel Ángel Herrera",
+    "email": "miguel.herrera@example.com"
+  },
+  {
+    "name": "Roberto Silva",
+    "email": "roberto.silva@example.com"
+  },
+  {
+    "name": "Diego Morales",
+    "email": "diego.morales@example.com"
+  },
+  {
+    "name": "Fernando Castro",
+    "email": "fernando.castro@example.com"
+  },
+  {
+    "name": "Javier Ortiz",
+    "email": "javier.ortiz@example.com"
+  },
+  {
+    "name": "Héctor Romero",
+    "email": "hector.romero@example.com"
+  },
+  {
+    "name": "Gabriel Mendoza",
+    "email": "gabriel.mendoza@example.com"
+  },
+  {
+    "name": "Víctor Vargas",
+    "email": "victor.vargas@example.com"
+  },
+  {
+    "name": "Alejandro Ramos",
+    "email": "alejandro.ramos@example.com"
+  },
+  {
+    "name": "Manuel Reyes",
+    "email": "manuel.reyes@example.com"
+  },
+  {
+    "name": "Ricardo Guerrero",
+    "email": "ricardo.guerrero@example.com"
+  },
+  {
+    "name": "Emilio Cruz",
+    "email": "emilio.cruz@example.com"
+  },
+  {
+    "name": "Sergio Medina",
+    "email": "sergio.medina@example.com"
+  },
+  {
+    "name": "Pablo Delgado",
+    "email": "pablo.delgado@example.com"
+  },
+  {
+    "name": "Raúl Peña",
+    "email": "raul.pena@example.com"
+  },
+  {
+    "name": "Hugo Flores",
+    "email": "hugo.flores@example.com"
+  },
+  {
+    "name": "Rodrigo Cabrera",
+    "email": "rodrigo.cabrera@example.com"
+  },
+  {
+    "name": "Salvador Soto",
+    "email": "salvador.soto@example.com"
+  },
+  {
+    "name": "Enrique Vega",
+    "email": "enrique.vega@example.com"
+  },
+  {
+    "name": "Mario Fuentes",
+    "email": "mario.fuentes@example.com"
+  },
+  {
+    "name": "Guillermo Carrasco",
+    "email": "guillermo.carrasco@example.com"
+  },
+  {
+    "name": "Alfonso Benítez",
+    "email": "alfonso.benitez@example.com"
+  },
+  {
+    "name": "Arturo León",
+    "email": "arturo.leon@example.com"
+  },
+  {
+    "name": "Marcos Ibáñez",
+    "email": "marcos.ibanez@example.com"
+  },
+  {
+    "name": "Felipe Solís",
+    "email": "felipe.solis@example.com"
+  },
+  {
+    "name": "Gonzalo Rivas",
+    "email": "gonzalo.rivas@example.com"
+  },
+  {
+    "name": "Andrés Vidal",
+    "email": "andres.vidal@example.com"
+  },
+  {
+    "name": "Tomás Aguirre",
+    "email": "tomas.aguirre@example.com"
+  },
+  {
+    "name": "Patricio Navarro",
+    "email": "patricio.navarro@example.com"
+  },
+  {
+    "name": "César Figueroa",
+    "email": "cesar.figueroa@example.com"
+  },
+  {
+    "name": "Mauricio Paredes",
+    "email": "mauricio.paredes@example.com"
+  },
+  {
+    "name": "Gustavo Espinoza",
+    "email": "gustavo.espinoza@example.com"
+  },
+  {
+    "name": "Lucas Miranda",
+    "email": "lucas.miranda@example.com"
+  },
+  {
+    "name": "Mateo Robles",
+    "email": "mateo.robles@example.com"
+  },
+  {
+    "name": "Daniel Córdova",
+    "email": "daniel.cordova@example.com"
+  },
+  {
+    "name": "Esteban Hurtado",
+    "email": "esteban.hurtado@example.com"
+  },
+  {
+    "name": "Samuel Montoya",
+    "email": "samuel.montoya@example.com"
+  },
+  {
+    "name": "Nicolás Pacheco",
+    "email": "nicolas.pacheco@example.com"
+  },
+  {
+    "name": "Julián Valenzuela",
+    "email": "julian.valenzuela@example.com"
+  },
+  {
+    "name": "Sebastián Cárdenas",
+    "email": "sebastian.cardenas@example.com"
+  },
+  {
+    "name": "Benjamín Ríos",
+    "email": "benjamin.rios@example.com"
+  },
+  {
+    "name": "Cristián Bustos",
+    "email": "cristian.bustos@example.com"
+  },
+  {
+    "name": "Rafael Osorio",
+    "email": "rafael.osorio@example.com"
+  }
+]
