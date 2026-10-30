@@ -60,7 +60,7 @@ class CustomerSearchService:
         self._custom_customers = list(value) if value is not None else None
 
     def _calculate_match_priority(
-        self, query: str, customer: Customer
+        self, query: str, customer: Customer, search_field: str = "all"
     ) -> Optional[int]:
         """Calcula la prioridad de relevancia de la coincidencia para un cliente.
 
@@ -76,29 +76,33 @@ class CustomerSearchService:
         norm_name = normalize_text(customer.name)
         norm_email = normalize_text(customer.email)
 
+        check_name = search_field in ("all", "name")
+        check_email = search_field in ("all", "email")
+
         # 1. Coincidencia exacta en nombre
-        if norm_name == query:
+        if check_name and norm_name == query:
             return 1
 
         # 2. Coincidencia exacta en correo (o nombre de usuario del correo)
-        email_user = norm_email.split("@")[0] if "@" in norm_email else norm_email
-        if norm_email == query or email_user == query:
-            return 2
+        if check_email:
+            email_user = norm_email.split("@")[0] if "@" in norm_email else norm_email
+            if norm_email == query or email_user == query:
+                return 2
 
         # 3. Coincidencia de prefijo en nombre
-        if norm_name.startswith(query):
+        if check_name and norm_name.startswith(query):
             return 3
 
         # 4. Coincidencia de prefijo en correo
-        if norm_email.startswith(query):
+        if check_email and norm_email.startswith(query):
             return 4
 
         # 5. Coincidencia de subcadena en nombre
-        if query in norm_name:
+        if check_name and query in norm_name:
             return 5
 
         # 6. Coincidencia de subcadena en correo
-        if query in norm_email:
+        if check_email and query in norm_email:
             return 6
 
         return None
@@ -109,17 +113,21 @@ class CustomerSearchService:
         page: int = 1,
         limit: int = 20,
         order: str = "asc",
+        search_field: str = "all",
     ) -> Dict[str, Any]:
         """Ejecuta la búsqueda y lanza excepciones de dominio si ocurren validaciones o ausencias."""
-        # 1. Extracción del término y orden
+        # 1. Extracción del término, orden y campo de búsqueda
         raw_term = ""
         raw_order = order
+        raw_search_field = search_field
         if isinstance(request_payload, dict):
             name_term = request_payload.get("name", "")
             email_term = request_payload.get("email", "")
             query_term = request_payload.get("query", "")
             if "order" in request_payload and request_payload["order"] is not None:
                 raw_order = request_payload["order"]
+            if "search_field" in request_payload and request_payload["search_field"] is not None:
+                raw_search_field = request_payload["search_field"]
 
             if query_term:
                 raw_term = str(query_term)
@@ -139,6 +147,17 @@ class CustomerSearchService:
         if clean_order not in ("asc", "desc"):
             raise ValidationError("El parámetro de ordenamiento debe ser 'asc' o 'desc'")
 
+        # Validación de parámetro search_field ('all', 'name' o 'email')
+        if raw_search_field is None:
+            clean_search_field = "all"
+        elif isinstance(raw_search_field, str):
+            clean_search_field = raw_search_field.lower().strip()
+        else:
+            raise ValidationError("El parámetro search_field debe ser 'all', 'name' o 'email'")
+
+        if clean_search_field not in ("all", "name", "email"):
+            raise ValidationError("El parámetro search_field debe ser 'all', 'name' o 'email'")
+
         # Validación de solicitud vacía o solo espacios (Edge case SPEC.md / T-04)
         trimmed_term = raw_term.strip()
         if not trimmed_term:
@@ -153,7 +172,9 @@ class CustomerSearchService:
         # 2. Filtrado y ordenamiento por relevancia
         matched_customers: List[Tuple[int, str, Customer]] = []
         for customer in self.customers:
-            priority = self._calculate_match_priority(normalized_query, customer)
+            priority = self._calculate_match_priority(
+                normalized_query, customer, search_field=clean_search_field
+            )
             if priority is not None:
                 matched_customers.append(
                     (priority, normalize_text(customer.name), customer)
@@ -194,6 +215,7 @@ class CustomerSearchService:
             "page": safe_page,
             "limit": safe_limit,
             "order": clean_order,
+            "search_field": clean_search_field,
             "data": dto_results,
         }
 
@@ -203,6 +225,7 @@ class CustomerSearchService:
         page: int = 1,
         limit: int = 20,
         order: str = "asc",
+        search_field: str = "all",
     ) -> Dict[str, Any]:
         """Punto de entrada compatible que atrapa excepciones de dominio y empaqueta
 
@@ -210,7 +233,11 @@ class CustomerSearchService:
         """
         try:
             return self.search_customers(
-                request_payload, page=page, limit=limit, order=order
+                request_payload,
+                page=page,
+                limit=limit,
+                order=order,
+                search_field=search_field,
             )
         except CustomerNotFoundError as not_found:
             resolved_order = (
@@ -218,6 +245,15 @@ class CustomerSearchService:
                 if str(order).lower().strip() in ("asc", "desc")
                 else "asc"
             )
+            resolved_search_field = "all"
+            if isinstance(search_field, str) and search_field.lower().strip() in ("all", "name", "email"):
+                resolved_search_field = search_field.lower().strip()
+            if (
+                isinstance(request_payload, dict)
+                and isinstance(request_payload.get("search_field"), str)
+                and request_payload["search_field"].lower().strip() in ("all", "name", "email")
+            ):
+                resolved_search_field = request_payload["search_field"].lower().strip()
             return {
                 "status": not_found.status_code,
                 "message": not_found.message,
@@ -225,6 +261,7 @@ class CustomerSearchService:
                 "page": page,
                 "limit": limit,
                 "order": resolved_order,
+                "search_field": resolved_search_field,
                 "data": [],
             }
         except DatabaseError as db_error:

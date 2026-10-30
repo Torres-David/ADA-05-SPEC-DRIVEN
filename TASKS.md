@@ -34,3 +34,9 @@
 - Files: search_services.py, handler.py, cli.py, test_search_service.py
 - Acceptance: Permite ordenar el desempate alfabético de forma ascendente ('asc') o descendente ('desc'). Rechaza valores inválidos con HTTP 400.
 - Verification: pytest
+
+## T-08 Configurable search field scoping (CR-01)
+- Goal: Add an optional `search_field` parameter ('all', 'name', 'email', defaulting to 'all') to scope matches specifically to customer names or email addresses while preserving backward compatibility.
+- Files: search_services.py, handler.py, cli.py, test_search_service.py
+- Acceptance: Scopes matches to name ('name') or email ('email'), or both ('all'). Rejects unsupported values with ValidationError (HTTP 400). Supported via payload dictionary, service method call, and handler invocation.
+- Verification: pytest

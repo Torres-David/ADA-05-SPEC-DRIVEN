@@ -14,13 +14,14 @@ def format_search_results(response: Dict[str, Any]) -> str:
     page = response.get("page", 1)
     limit = response.get("limit", 20)
     order = response.get("order", "asc")
+    search_field = response.get("search_field", "all")
 
     lines = []
     lines.append(f"[{status}] {message}")
 
     if status == 200:
         lines.append(
-            f"Resultados encontrados: {total} (Página {page}, Límite {limit}, Orden {order})"
+            f"Resultados encontrados: {total} (Página {page}, Límite {limit}, Orden {order}, Campo {search_field})"
         )
         lines.append("-" * 65)
         lines.append(f"{'ID':<6} | {'NOMBRE':<30} | {'CORREO ELECTRÓNICO':<30}")
@@ -64,6 +65,12 @@ def main():
         default="asc",
         help="Orden de desempate alfabético por nombre ('asc' o 'desc', defecto: 'asc')",
     )
+    parser.add_argument(
+        "--search-field",
+        choices=["all", "name", "email"],
+        default="all",
+        help="Campo sobre el que buscar ('all', 'name', 'email', defecto: 'all')",
+    )
 
     args = parser.parse_args()
     handler = CustomerSearchHandler()
@@ -78,7 +85,11 @@ def main():
             payload["email"] = args.email
 
         response = handler.handle(
-            payload, page=args.page, limit=args.limit, order=args.order
+            payload,
+            page=args.page,
+            limit=args.limit,
+            order=args.order,
+            search_field=args.search_field,
         )
         print(format_search_results(response))
         return

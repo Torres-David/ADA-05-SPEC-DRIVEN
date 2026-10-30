@@ -262,3 +262,155 @@ def test_configurable_sort_order_in_handler():
     assert res_desc["status"] == 200
     assert res_desc["order"] == "desc"
 
+
+
+def test_search_field_name_scoping():
+    """CR-01: When search_field='name', match only against customer names; emails are excluded."""
+    customers = [
+        Customer(id="1", nombre="Carlos Santana", email="csantana@uady.mx"),
+        Customer(id="2", nombre="David Torres", email="carlos.fan@example.com"),
+    ]
+    service = CustomerSearchService(customers=customers)
+    res = service.search("carlos", search_field="name")
+    assert res["status"] == 200
+    assert res["search_field"] == "name"
+    names = [c["name"] for c in res["data"]]
+    assert names == ["Carlos Santana"]
+
+
+def test_search_field_email_scoping():
+    """CR-01: When search_field='email', match only against customer emails; names are excluded."""
+    customers = [
+        Customer(id="1", nombre="Carlos Santana", email="csantana@uady.mx"),
+        Customer(id="2", nombre="David Torres", email="carlos.fan@example.com"),
+    ]
+    service = CustomerSearchService(customers=customers)
+    res = service.search("carlos", search_field="email")
+    assert res["status"] == 200
+    assert res["search_field"] == "email"
+    names = [c["name"] for c in res["data"]]
+    assert names == ["David Torres"]
+
+
+def test_search_field_all_and_omitted_matches_both():
+    """CR-01: When search_field='all' or omitted, match against both name and email fields."""
+    customers = [
+        Customer(id="1", nombre="Carlos Santana", email="csantana@uady.mx"),
+        Customer(id="2", nombre="David Torres", email="carlos.fan@example.com"),
+    ]
+    service = CustomerSearchService(customers=customers)
+    res_all = service.search("carlos", search_field="all")
+    assert res_all["status"] == 200
+    assert res_all["search_field"] == "all"
+    assert len(res_all["data"]) == 2
+
+    res_omitted = service.search("carlos")
+    assert res_omitted["status"] == 200
+    assert res_omitted["search_field"] == "all"
+    assert len(res_omitted["data"]) == 2
+    assert res_all["data"] == res_omitted["data"]
+
+
+def test_search_field_via_payload_dictionary():
+    """CR-01: Parameter search_field is accepted via request payload dictionary."""
+    customers = [
+        Customer(id="1", nombre="Carlos Santana", email="csantana@uady.mx"),
+        Customer(id="2", nombre="David Torres", email="carlos.fan@example.com"),
+    ]
+    service = CustomerSearchService(customers=customers)
+
+    res_name = service.search({"query": "carlos", "search_field": "name"})
+    assert [c["name"] for c in res_name["data"]] == ["Carlos Santana"]
+    assert res_name["search_field"] == "name"
+
+    res_email = service.search({"query": "carlos", "search_field": "email"})
+    assert [c["name"] for c in res_email["data"]] == ["David Torres"]
+    assert res_email["search_field"] == "email"
+
+    res_all = service.search({"query": "carlos", "search_field": "all"})
+    assert len(res_all["data"]) == 2
+    assert res_all["search_field"] == "all"
+
+
+def test_search_field_invalid_value_raises_validation_error():
+    """CR-01: Any unsupported search_field value raises ValidationError / returns HTTP 400."""
+    service = CustomerSearchService()
+
+    with pytest.raises(ValidationError) as exc_info:
+        service.search_customers("Carlos", search_field="invalid_field")
+    assert exc_info.value.status_code == 400
+    assert "search_field" in exc_info.value.message
+
+    with pytest.raises(ValidationError):
+        service.search_customers({"query": "Carlos", "search_field": "invalid_field"})
+
+    with pytest.raises(ValidationError):
+        service.search_customers("Carlos", search_field="")
+
+    with pytest.raises(ValidationError):
+        service.search_customers("Carlos", search_field=123)
+
+    res = service.search({"query": "Carlos", "search_field": "unsupported"})
+    assert res["status"] == 400
+    assert "search_field" in res["message"]
+    assert res["data"] == []
+
+
+def test_search_field_in_handler_invocation():
+    """CR-01: CustomerSearchHandler processes search_field via argument and payload."""
+    customers = [
+        Customer(id="1", nombre="Carlos Santana", email="csantana@uady.mx"),
+        Customer(id="2", nombre="David Torres", email="carlos.fan@example.com"),
+    ]
+    service = CustomerSearchService(customers=customers)
+    handler = CustomerSearchHandler(service=service)
+
+    # Vía argumento directo en handle()
+    res_arg_name = handler.handle({"query": "carlos"}, search_field="name")
+    assert [c["name"] for c in res_arg_name["data"]] == ["Carlos Santana"]
+
+    res_arg_email = handler.handle({"query": "carlos"}, search_field="email")
+    assert [c["name"] for c in res_arg_email["data"]] == ["David Torres"]
+
+    res_arg_invalid = handler.handle({"query": "carlos"}, search_field="invalid_scope")
+    assert res_arg_invalid["status"] == 400
+
+    # Vía diccionario de payload
+    res_payload_name = handler.handle({"query": "carlos", "search_field": "name"})
+    assert [c["name"] for c in res_payload_name["data"]] == ["Carlos Santana"]
+
+    res_payload_email = handler.handle({"query": "carlos", "search_field": "email"})
+    assert [c["name"] for c in res_payload_email["data"]] == ["David Torres"]
+
+    res_payload_invalid = handler.handle({"query": "carlos", "search_field": "invalid_scope"})
+    assert res_payload_invalid["status"] == 400
+
+
+def test_search_field_scoping_with_seed_database():
+    """CR-01: Scoping against seed database where 'emp' only exists in Soporte TI's email."""
+    service = CustomerSearchService()
+
+    # 'emp' está en 'soporte.ti@empresa.com' pero no en 'Soporte TI'
+    res_name = service.search({"query": "emp", "search_field": "name"})
+    assert res_name["status"] == 404
+    assert "No se encontraron clientes para 'emp'" in res_name["message"]
+
+    res_email = service.search({"query": "emp", "search_field": "email"})
+    assert res_email["status"] == 200
+    assert any(c["email"] == "soporte.ti@empresa.com" for c in res_email["data"])
+
+    res_all = service.search({"query": "emp", "search_field": "all"})
+    assert res_all["status"] == 200
+    assert any(c["email"] == "soporte.ti@empresa.com" for c in res_all["data"])
+
+
+def test_search_field_case_insensitivity_and_none_default():
+    """CR-01: Whitespace and casing normalization, and None fallback to 'all'."""
+    service = CustomerSearchService()
+    res_upper = service.search({"query": "Carlos", "search_field": " NAME "})
+    assert res_upper["status"] == 200
+    assert res_upper["search_field"] == "name"
+
+    res_none = service.search({"query": "Carlos", "search_field": None})
+    assert res_none["status"] == 200
+    assert res_none["search_field"] == "all"
