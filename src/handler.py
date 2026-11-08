@@ -71,6 +71,7 @@ class CustomerSearchHandler:
         limit: int = 20,
         user_id: Optional[str] = None,
         order: str = "asc",
+        search_field: str = "all",
     ) -> Dict[str, Any]:
         """Procesa la petición y retorna la respuesta con su código de estado HTTP correspondiente:
 
@@ -102,5 +103,9 @@ class CustomerSearchHandler:
                 }
 
         return self.service.search(
-            request_payload, page=page, limit=limit, order=order
+            request_payload,
+            page=page,
+            limit=limit,
+            order=order,
+            search_field=search_field,
         )

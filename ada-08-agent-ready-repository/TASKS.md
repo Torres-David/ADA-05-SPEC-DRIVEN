@@ -34,3 +34,9 @@
 - Files: search_services.py, handler.py, cli.py, test_search_service.py
 - Acceptance: Permite ordenar el desempate alfabético de forma ascendente ('asc') o descendente ('desc'). Rechaza valores inválidos con HTTP 400.
 - Verification: pytest
+
+## T-08 Scoped search field (CR-01)
+- Goal: Agregar soporte para el parámetro opcional `search_field` ('all', 'name', 'email', por defecto 'all') para limitar el alcance de búsqueda específicamente a nombres o correos electrónicos preservando compatibilidad.
+- Files: src/search_services.py, src/handler.py, src/cli.py, test/test_search_service.py
+- Acceptance: Cuando `search_field='name'`, coincide solo contra nombres. Cuando `search_field='email'`, coincide solo contra correos. Cuando `search_field='all'` u omitido, evalúa ambos campos. Rechaza valores no soportados con HTTP 400 (`ValidationError`).
+- Verification: pytest
