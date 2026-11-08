@@ -72,6 +72,7 @@ class CustomerSearchHandler:
         user_id: Optional[str] = None,
         order: str = "asc",
         search_field: str = "all",
+        email_domain: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Procesa la petición y retorna la respuesta con su código de estado HTTP correspondiente:
 
@@ -108,4 +109,5 @@ class CustomerSearchHandler:
             limit=limit,
             order=order,
             search_field=search_field,
+            email_domain=email_domain,
         )

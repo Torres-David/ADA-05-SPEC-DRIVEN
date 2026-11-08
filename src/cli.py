@@ -15,13 +15,15 @@ def format_search_results(response: Dict[str, Any]) -> str:
     limit = response.get("limit", 20)
     order = response.get("order", "asc")
     search_field = response.get("search_field", "all")
+    email_domain = response.get("email_domain")
+    domain_suffix = f", Dominio @{email_domain}" if email_domain else ""
 
     lines = []
     lines.append(f"[{status}] {message}")
 
     if status == 200:
         lines.append(
-            f"Resultados encontrados: {total} (Página {page}, Límite {limit}, Orden {order}, Campo {search_field})"
+            f"Resultados encontrados: {total} (Página {page}, Límite {limit}, Orden {order}, Campo {search_field}{domain_suffix})"
         )
         lines.append("-" * 65)
         lines.append(f"{'ID':<6} | {'NOMBRE':<30} | {'CORREO ELECTRÓNICO':<30}")
@@ -71,6 +73,11 @@ def main():
         default="all",
         help="Campo de búsqueda ('all', 'name' o 'email', defecto: 'all')",
     )
+    parser.add_argument(
+        "--email-domain",
+        default=None,
+        help="Filtrar resultados exclusivamente por dominio de correo electrónico (ej. 'empresa.com')",
+    )
 
     args = parser.parse_args()
     handler = CustomerSearchHandler()
@@ -90,6 +97,7 @@ def main():
             limit=args.limit,
             order=args.order,
             search_field=args.search_field,
+            email_domain=args.email_domain,
         )
         print(format_search_results(response))
         return
