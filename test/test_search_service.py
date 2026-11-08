@@ -388,3 +388,145 @@ def test_search_field_case_insensitivity_and_none_default(service):
     res_none = service.search("Carlos", search_field=None)
     assert res_none["status"] == 200
     assert res_none["search_field"] == "all"
+
+
+# ============================================================================
+# CR-02: Email Domain Filter & Format Validation Tests
+# ============================================================================
+
+def test_email_domain_filter_scopes_results_to_specified_domain(service):
+    """CR-02: When email_domain is provided, only records with that email domain are returned."""
+    # Searching for 'emp' in empresa.com returns soporte.ti@empresa.com
+    res = service.search({"query": "emp"}, email_domain="empresa.com")
+    assert res["status"] == 200
+    assert res["email_domain"] == "empresa.com"
+    assert len(res["data"]) > 0
+    assert all(c["email"].endswith("@empresa.com") for c in res["data"])
+
+
+def test_email_domain_filter_excludes_non_matching_domains(service):
+    """CR-02: Records matching the query but having a different domain are excluded."""
+    # 'Carlos Santana' has email 'carlos.santana@example.com'
+    res_example = service.search({"query": "Carlos"}, email_domain="example.com")
+    assert res_example["status"] == 200
+    assert any(c["name"] == "Carlos Santana" for c in res_example["data"])
+
+    # Searching for 'Carlos' within 'empresa.com' should find no records (returns 404 with FR-03 message)
+    res_empresa = service.search({"query": "Carlos"}, email_domain="empresa.com")
+    assert res_empresa["status"] == 404
+    assert res_empresa["message"] == "No se encontraron clientes para 'Carlos'"
+    assert res_empresa["data"] == []
+    assert res_empresa["email_domain"] == "empresa.com"
+
+
+def test_email_domain_normalization_leading_at_and_case_insensitive(service):
+    """CR-02: Normalization strips leading '@', whitespace, and converts to lowercase."""
+    res = service.search({"query": "sop"}, email_domain="  @EMPRESA.COM  ")
+    assert res["status"] == 200
+    assert res["email_domain"] == "empresa.com"
+    assert any(c["email"] == "soporte.ti@empresa.com" for c in res["data"])
+
+
+def test_email_domain_via_payload_dictionary(service):
+    """CR-02: email_domain is accepted via request_payload dictionary."""
+    payload = {"query": "soporte", "email_domain": "empresa.com"}
+    res = service.search(payload)
+    assert res["status"] == 200
+    assert res["email_domain"] == "empresa.com"
+    assert any("soporte.ti@empresa.com" in c["email"] for c in res["data"])
+
+
+def test_email_domain_invalid_format_raises_validation_error(service):
+    """CR-02 / RF-01: Invalid domain formats (including internal or multiple @) raise ValidationError (HTTP 400)."""
+    invalid_domains = [
+        "",
+        "   ",
+        "domain with spaces.com",
+        "nodotdomain",
+        ".leadingdot.com",
+        "trailingdot.com.",
+        "@@empresa.com",
+        "user@empresa.com",
+        123,
+    ]
+    for invalid in invalid_domains:
+        with pytest.raises(ValidationError) as exc_info:
+            service.search_customers("Carlos", email_domain=invalid)
+        assert exc_info.value.status_code == 400
+
+        res = service.search({"query": "Carlos", "email_domain": invalid})
+        assert res["status"] == 400
+        assert "email_domain" in res["message"]
+
+
+def test_email_domain_in_handler_invocation():
+    """CR-02: CustomerSearchHandler processes email_domain via kwarg and payload."""
+    handler = CustomerSearchHandler()
+    res_kwarg = handler.handle({"query": "sop"}, email_domain="empresa.com")
+    assert res_kwarg["status"] == 200
+    assert res_kwarg["email_domain"] == "empresa.com"
+
+    res_payload = handler.handle({"query": "sop", "email_domain": "empresa.com"})
+    assert res_payload["status"] == 200
+    assert res_payload["email_domain"] == "empresa.com"
+
+    res_invalid = handler.handle({"query": "Carlos"}, email_domain="invalid domain")
+    assert res_invalid["status"] == 400
+
+
+def test_email_domain_none_or_omitted_preserves_cross_domain(service):
+    """CR-02: When email_domain is None or omitted, search matches across all domains."""
+    res_omitted = service.search("soporte")
+    assert res_omitted["status"] == 200
+    assert res_omitted["email_domain"] is None
+
+    res_none = service.search("soporte", email_domain=None)
+    assert res_none["status"] == 200
+    assert res_none["email_domain"] is None
+
+
+# ============================================================================
+# RF-02: CLI format_search_results verification for email_domain
+# ============================================================================
+
+def test_cli_format_search_results_with_email_domain():
+    """RF-02: format_search_results displays ', Dominio @<domain>' when email_domain is present."""
+    from src.cli import format_search_results
+
+    response = {
+        "status": 200,
+        "message": "Búsqueda exitosa",
+        "total": 1,
+        "page": 1,
+        "limit": 20,
+        "order": "asc",
+        "search_field": "all",
+        "email_domain": "empresa.com",
+        "data": [{"id": "1", "name": "Soporte TI", "email": "soporte.ti@empresa.com"}],
+    }
+    output = format_search_results(response)
+    assert "[200] Búsqueda exitosa" in output
+    assert "Dominio @empresa.com" in output
+    assert "soporte.ti@empresa.com" in output
+
+
+def test_cli_format_search_results_omits_domain_when_none():
+    """RF-02: format_search_results omits domain suffix when email_domain is None or absent."""
+    from src.cli import format_search_results
+
+    response = {
+        "status": 200,
+        "message": "Búsqueda exitosa",
+        "total": 1,
+        "page": 1,
+        "limit": 20,
+        "order": "asc",
+        "search_field": "all",
+        "email_domain": None,
+        "data": [{"id": "1", "name": "Carlos Santana", "email": "carlos.santana@example.com"}],
+    }
+    output = format_search_results(response)
+    assert "[200] Búsqueda exitosa" in output
+    assert "Dominio @" not in output
+
+

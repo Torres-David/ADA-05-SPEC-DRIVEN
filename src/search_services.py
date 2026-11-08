@@ -113,12 +113,14 @@ class CustomerSearchService:
         limit: int = 20,
         order: str = "asc",
         search_field: str = "all",
+        email_domain: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Ejecuta la búsqueda y lanza excepciones de dominio si ocurren validaciones o ausencias."""
-        # 1. Extracción del término, orden y campo de búsqueda
+        # 1. Extracción del término, orden, campo de búsqueda y filtro por dominio de email
         raw_term = ""
         raw_order = order
         raw_search_field = search_field if search_field is not None else "all"
+        raw_email_domain = email_domain
 
         if isinstance(request_payload, dict):
             name_term = request_payload.get("name", "")
@@ -128,6 +130,8 @@ class CustomerSearchService:
                 raw_order = request_payload["order"]
             if "search_field" in request_payload and request_payload["search_field"] is not None:
                 raw_search_field = request_payload["search_field"]
+            if "email_domain" in request_payload and request_payload["email_domain"] is not None:
+                raw_email_domain = request_payload["email_domain"]
 
             if query_term:
                 raw_term = str(query_term)
@@ -154,6 +158,27 @@ class CustomerSearchService:
         if clean_search_field not in ("all", "name", "email"):
             raise ValidationError("El parámetro search_field debe ser 'all', 'name' o 'email'")
 
+        # Validación y normalización de parámetro email_domain (CR-02)
+        clean_email_domain: Optional[str] = None
+        if raw_email_domain is not None:
+            if not isinstance(raw_email_domain, str):
+                raise ValidationError("El parámetro email_domain debe ser una cadena válida")
+            stripped_domain = raw_email_domain.strip().lower()
+            if stripped_domain.startswith("@"):
+                stripped_domain = stripped_domain[1:].strip()
+            if (
+                not stripped_domain
+                or " " in stripped_domain
+                or "@" in stripped_domain
+                or "." not in stripped_domain
+                or stripped_domain.startswith(".")
+                or stripped_domain.endswith(".")
+            ):
+                raise ValidationError(
+                    "El parámetro email_domain debe ser un dominio válido (ej. 'empresa.com')"
+                )
+            clean_email_domain = stripped_domain
+
         # Validación de solicitud vacía o solo espacios (Edge case SPEC.md / T-04)
         trimmed_term = raw_term.strip()
         if not trimmed_term:
@@ -168,6 +193,12 @@ class CustomerSearchService:
         # 2. Filtrado y ordenamiento por relevancia
         matched_customers: List[Tuple[int, str, Customer]] = []
         for customer in self.customers:
+            # Filtrado por dominio de correo (CR-02)
+            if clean_email_domain is not None:
+                cust_email = customer.email.strip().lower()
+                if "@" not in cust_email or cust_email.split("@")[-1] != clean_email_domain:
+                    continue
+
             priority = self._calculate_match_priority(
                 normalized_query, customer, search_field=clean_search_field
             )
@@ -212,6 +243,7 @@ class CustomerSearchService:
             "limit": safe_limit,
             "order": clean_order,
             "search_field": clean_search_field,
+            "email_domain": clean_email_domain,
             "data": dto_results,
         }
 
@@ -222,6 +254,7 @@ class CustomerSearchService:
         limit: int = 20,
         order: str = "asc",
         search_field: str = "all",
+        email_domain: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Punto de entrada compatible que atrapa excepciones de dominio y empaqueta
         la respuesta con el código HTTP correspondiente.
@@ -233,6 +266,7 @@ class CustomerSearchService:
                 limit=limit,
                 order=order,
                 search_field=search_field,
+                email_domain=email_domain,
             )
         except CustomerNotFoundError as not_found:
             resolved_order = (
@@ -241,13 +275,25 @@ class CustomerSearchService:
                 else "asc"
             )
             raw_field = search_field
-            if isinstance(request_payload, dict) and request_payload.get("search_field") is not None:
-                raw_field = request_payload["search_field"]
+            raw_domain = email_domain
+            if isinstance(request_payload, dict):
+                if request_payload.get("search_field") is not None:
+                    raw_field = request_payload["search_field"]
+                if request_payload.get("email_domain") is not None:
+                    raw_domain = request_payload["email_domain"]
+
             resolved_field = (
                 str(raw_field).lower().strip()
                 if str(raw_field).lower().strip() in ("all", "name", "email")
                 else "all"
             )
+            resolved_email_domain: Optional[str] = None
+            if raw_domain is not None and isinstance(raw_domain, str):
+                cleaned_domain = raw_domain.strip().lower()
+                if cleaned_domain.startswith("@"):
+                    cleaned_domain = cleaned_domain[1:].strip()
+                resolved_email_domain = cleaned_domain
+
             return {
                 "status": not_found.status_code,
                 "message": not_found.message,
@@ -256,6 +302,7 @@ class CustomerSearchService:
                 "limit": limit,
                 "order": resolved_order,
                 "search_field": resolved_field,
+                "email_domain": resolved_email_domain,
                 "data": [],
             }
         except DatabaseError as db_error:
