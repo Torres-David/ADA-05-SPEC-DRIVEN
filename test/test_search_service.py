@@ -437,7 +437,7 @@ def test_email_domain_via_payload_dictionary(service):
 
 
 def test_email_domain_invalid_format_raises_validation_error(service):
-    """CR-02: Invalid domain formats raise ValidationError (HTTP 400)."""
+    """CR-02 / RF-01: Invalid domain formats (including internal or multiple @) raise ValidationError (HTTP 400)."""
     invalid_domains = [
         "",
         "   ",
@@ -445,6 +445,8 @@ def test_email_domain_invalid_format_raises_validation_error(service):
         "nodotdomain",
         ".leadingdot.com",
         "trailingdot.com.",
+        "@@empresa.com",
+        "user@empresa.com",
         123,
     ]
     for invalid in invalid_domains:
@@ -481,4 +483,50 @@ def test_email_domain_none_or_omitted_preserves_cross_domain(service):
     res_none = service.search("soporte", email_domain=None)
     assert res_none["status"] == 200
     assert res_none["email_domain"] is None
+
+
+# ============================================================================
+# RF-02: CLI format_search_results verification for email_domain
+# ============================================================================
+
+def test_cli_format_search_results_with_email_domain():
+    """RF-02: format_search_results displays ', Dominio @<domain>' when email_domain is present."""
+    from src.cli import format_search_results
+
+    response = {
+        "status": 200,
+        "message": "Búsqueda exitosa",
+        "total": 1,
+        "page": 1,
+        "limit": 20,
+        "order": "asc",
+        "search_field": "all",
+        "email_domain": "empresa.com",
+        "data": [{"id": "1", "name": "Soporte TI", "email": "soporte.ti@empresa.com"}],
+    }
+    output = format_search_results(response)
+    assert "[200] Búsqueda exitosa" in output
+    assert "Dominio @empresa.com" in output
+    assert "soporte.ti@empresa.com" in output
+
+
+def test_cli_format_search_results_omits_domain_when_none():
+    """RF-02: format_search_results omits domain suffix when email_domain is None or absent."""
+    from src.cli import format_search_results
+
+    response = {
+        "status": 200,
+        "message": "Búsqueda exitosa",
+        "total": 1,
+        "page": 1,
+        "limit": 20,
+        "order": "asc",
+        "search_field": "all",
+        "email_domain": None,
+        "data": [{"id": "1", "name": "Carlos Santana", "email": "carlos.santana@example.com"}],
+    }
+    output = format_search_results(response)
+    assert "[200] Búsqueda exitosa" in output
+    assert "Dominio @" not in output
+
 

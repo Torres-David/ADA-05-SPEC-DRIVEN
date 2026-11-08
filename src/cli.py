@@ -2,7 +2,10 @@ import argparse
 import sys
 from typing import Any, Dict
 
-from handler import CustomerSearchHandler
+try:
+    from src.handler import CustomerSearchHandler
+except ModuleNotFoundError:
+    from handler import CustomerSearchHandler
 
 
 def format_search_results(response: Dict[str, Any]) -> str:

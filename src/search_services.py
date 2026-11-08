@@ -169,6 +169,7 @@ class CustomerSearchService:
             if (
                 not stripped_domain
                 or " " in stripped_domain
+                or "@" in stripped_domain
                 or "." not in stripped_domain
                 or stripped_domain.startswith(".")
                 or stripped_domain.endswith(".")
